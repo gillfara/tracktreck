@@ -1,7 +1,16 @@
 <resources>
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
     <color name="spotify_black">#191414</color>
     <color name="spotify_green">#1DB954</color>
+    <color name="spotify_green_variant">#1ED760</color>
     <color name="spotify_white">#FFFFFF</color>
+    <color name="spotify_dark_black">#191414</color>
     <color name="spotify_light_black">#121212</color>
     <color name="spotify_gray">#B3B3B3</color>
     <color name="spotify_dark_gray">#282828</color>
