@@ -3,14 +3,17 @@ package com.example.myapplication;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.database.DatabaseProvider;
@@ -42,16 +45,21 @@ public class MainActivity extends AppCompatActivity {
     private PlayerView playerView;
     private ExoPlayer player;
     private ListView songListView;
-    private ArrayList<String> songList;
-    private ArrayAdapter<String> songAdapter;
+    private ArrayList<CustomMusicItem> songList;
+    private CustomMusicAdapter songAdapter;
+    private TextView currentSongTitle, currentSongArtist;
+    private ImageView playPauseButton, nextButton, prevButton;
 
-    private void playSelectedSong(String song) {
-        // Replace with the actual URL or URI of the song
-        String songUrl = "http://192.168.43.151/hls/" + song;
-        MediaItem mediaItem = MediaItem.fromUri(songUrl);
+    private void playSelectedSong(CustomMusicItem song) {
+        MediaItem mediaItem = MediaItem.fromUri(song.getSongUrl());
         player.setMediaItem(mediaItem);
         player.prepare();
         player.play();
+
+        // Update current song UI
+        currentSongTitle.setText(song.getTitle());
+        currentSongArtist.setText(song.getArtist());
+        playPauseButton.setImageResource(R.drawable.ic_pause);
     }
 
     @Override
@@ -69,13 +77,18 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-//        playerView = findViewById(R.id.player_view);
-        songListView = findViewById(R.id.music_list); // Initialize songListView
+        playerView = findViewById(R.id.player_view);
+        songListView = findViewById(R.id.music_list);
+        currentSongTitle = findViewById(R.id.current_song_title);
+        currentSongArtist = findViewById(R.id.current_song_artist);
+        playPauseButton = findViewById(R.id.play_pause_button);
+        nextButton = findViewById(R.id.next_button);
+        prevButton = findViewById(R.id.prev_button);
 
         // Music player and cache setup
-        File caChedir = new File(getCacheDir(), "media");
+        File cacheDir = new File(getCacheDir(), "media");
         DatabaseProvider databaseProvider = new StandaloneDatabaseProvider(this);
-        Cache cache = new SimpleCache(caChedir, new LeastRecentlyUsedCacheEvictor(3 * 1024 * 1024), databaseProvider);
+        Cache cache = new SimpleCache(cacheDir, new LeastRecentlyUsedCacheEvictor(3 * 1024 * 1024), databaseProvider);
         DataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
         DataSource.Factory cacheDataSourceFactory = new CacheDataSource.Factory().setCache(cache).setUpstreamDataSourceFactory(httpDataSourceFactory);
 
@@ -89,7 +102,11 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < response.length(); i++) {
                     try {
                         JSONObject item = response.getJSONObject(i);
-                        songList.add(item.getString("path"));
+                        String path = item.getString("path");
+                        String title = item.getString("title");
+                        String artist = item.getString("artist");
+                        String albumCoverUrl = item.getString("albumCoverUrl");
+                        songList.add(new CustomMusicItem(albumCoverUrl, title, artist, "http://192.168.43.151/hls/" + path));
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -102,21 +119,51 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
                 throwable.printStackTrace(); // Print stack trace for debugging
+                Toast.makeText(MainActivity.this, "Failed to load songs", Toast.LENGTH_SHORT).show();
             }
         });
 
         // Set up the song list view
-        songAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, songList);
+        songAdapter = new CustomMusicAdapter(this, R.layout.list_item_music, songList);
         songListView.setAdapter(songAdapter);
 
         songListView.setOnItemClickListener((parent, view, position, id) -> {
             // Handle song selection
-            String selectedSong = songList.get(position);
+            CustomMusicItem selectedSong = songList.get(position);
             playSelectedSong(selectedSong);
         });
 
         player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory)).build();
-//        playerView.setPlayer(player);
+        playerView.setPlayer(player);
+
+        // Handle play/pause button
+        playPauseButton.setOnClickListener(v -> {
+            if (player.isPlaying()) {
+                player.pause();
+                playPauseButton.setImageResource(R.drawable.ic_play);
+            } else {
+                player.play();
+                playPauseButton.setImageResource(R.drawable.ic_pause);
+            }
+        });
+
+        // Handle next button
+        nextButton.setOnClickListener(v -> {
+            int nextIndex = player.getNextWindowIndex();
+            if (nextIndex != C.INDEX_UNSET) {
+                player.seekTo(nextIndex, C.TIME_UNSET);
+                player.play();
+            }
+        });
+
+        // Handle previous button
+        prevButton.setOnClickListener(v -> {
+            int prevIndex = player.getPreviousWindowIndex();
+            if (prevIndex != C.INDEX_UNSET) {
+                player.seekTo(prevIndex, C.TIME_UNSET);
+                player.play();
+            }
+        });
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
