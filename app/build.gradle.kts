@@ -41,5 +41,6 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.3.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
     implementation("com.loopj.android:android-async-http:1.4.11")
+    implementation("com.google.android.exoplayer:exoplayer:2.17.0")
 
 }
