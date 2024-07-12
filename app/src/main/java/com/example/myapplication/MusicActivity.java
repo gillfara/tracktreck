@@ -81,7 +81,6 @@ public class MusicActivity extends AppCompatActivity {
     }
 
     private void loadSongInfo() {
-        // Example data, replace with actual data
         songTitle.setText("Song Title");
         songArtist.setText("Artist Name");
         songThumbnail.setImageResource(R.drawable.ic_music_note);

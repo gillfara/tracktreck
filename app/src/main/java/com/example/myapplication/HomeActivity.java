@@ -57,7 +57,7 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private List<RecentlyPlayedItem> getRecentlyPlayedItems() {
-        // Sample data for recently played items
+
         List<RecentlyPlayedItem> recentlyPlayedItems = new ArrayList<>();
         recentlyPlayedItems.add(new RecentlyPlayedItem("Song 1", R.drawable.ic_music_note));
         recentlyPlayedItems.add(new RecentlyPlayedItem("Song 2", R.drawable.ic_music_note));
