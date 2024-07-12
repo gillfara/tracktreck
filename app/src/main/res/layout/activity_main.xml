@@ -5,13 +5,12 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/spotify_white"
     tools:context=".MainActivity">
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/player_view"
+
+    <ListView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:played_color="@color/purple_500"
-        android:saveEnabled="true"
-        app:show_buffering="when_playing"
-        app:show_shuffle_button="true"/>
+        android:id="@+id/music_list"
+        />
 </androidx.constraintlayout.widget.ConstraintLayout>

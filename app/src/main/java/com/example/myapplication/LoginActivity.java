@@ -29,7 +29,7 @@
             Button loginBtn = findViewById(R.id.login);
             EditText usernameView = findViewById(R.id.username);
             EditText passwordView = findViewById(R.id.password);
-            TextView registerView = findViewById(R.id.create_account);
+            TextView registerView = findViewById(R.id.register);
 
             registerView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -59,6 +59,7 @@
                                     if (statusCode == 200) {
 
                                         Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+                                        startActivity(new Intent(LoginActivity.this,MainActivity.class));
 
                                     }
                                 }

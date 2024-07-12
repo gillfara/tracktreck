@@ -1,6 +1,10 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,9 +25,42 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.util.ArrayList;
+
+import cz.msebera.android.httpclient.Header;
 
 public class MainActivity extends AppCompatActivity {
+
+    private PlayerView playerView;
+    private ExoPlayer player;
+    private ListView songListView;
+    private ArrayList<String> songList;
+    private ArrayAdapter<String> songAdapter;
+
+    private void playSelectedSong(String song) {
+        // Replace with the actual URL or URI of the song
+        String songUrl = "http://192.168.43.151/hls/" + song;
+        MediaItem mediaItem = MediaItem.fromUri(songUrl);
+        player.setMediaItem(mediaItem);
+        player.prepare();
+        player.play();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (player != null) {
+            player.release();
+        }
+    }
 
     @UnstableApi
     @Override
@@ -31,29 +68,56 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        //music player and cache
-        File caChedir = new File(getCacheDir(),"media");
-        DatabaseProvider databaseProvider = new StandaloneDatabaseProvider(this);
-        Cache cache = new SimpleCache(caChedir,new LeastRecentlyUsedCacheEvictor(3*1024*1024),databaseProvider);
-        DataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
-        DataSource.Factory cacheDataSourceFactory =
-                new CacheDataSource.Factory()
-                        .setCache(cache)
-                        .setUpstreamDataSourceFactory(httpDataSourceFactory);
 
-        PlayerView playerView = findViewById(R.id.player_view);
-        MediaItem mediaItem = MediaItem.fromUri("http://192.168.43.151/hls/index.m3u8");
-        MediaItem item2 = MediaItem.fromUri("http://192.168.43.151/hls/fade.m3u8");
-        ExoPlayer player = new ExoPlayer.Builder(this)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(this)
-                        .setDataSourceFactory(cacheDataSourceFactory))
-                .build();
-        playerView.setPlayer(player);
-        player.setMediaItem(mediaItem);
-        player.addMediaItem(item2);
-//        player.setMediaItem(item2);
-        player.prepare();
-//        player.play();
+//        playerView = findViewById(R.id.player_view);
+        songListView = findViewById(R.id.music_list); // Initialize songListView
+
+        // Music player and cache setup
+        File caChedir = new File(getCacheDir(), "media");
+        DatabaseProvider databaseProvider = new StandaloneDatabaseProvider(this);
+        Cache cache = new SimpleCache(caChedir, new LeastRecentlyUsedCacheEvictor(3 * 1024 * 1024), databaseProvider);
+        DataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
+        DataSource.Factory cacheDataSourceFactory = new CacheDataSource.Factory().setCache(cache).setUpstreamDataSourceFactory(httpDataSourceFactory);
+
+        songList = new ArrayList<>();
+
+        // AsyncHttpClient to fetch songs
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.get("http://192.168.43.151/music", new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONArray response) {
+                for (int i = 0; i < response.length(); i++) {
+                    try {
+                        JSONObject item = response.getJSONObject(i);
+                        songList.add(item.getString("path"));
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Update UI on the main thread
+                runOnUiThread(() -> songAdapter.notifyDataSetChanged());
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+                throwable.printStackTrace(); // Print stack trace for debugging
+            }
+        });
+
+        // Set up the song list view
+        songAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, songList);
+        songListView.setAdapter(songAdapter);
+
+        songListView.setOnItemClickListener((parent, view, position, id) -> {
+            // Handle song selection
+            String selectedSong = songList.get(position);
+            playSelectedSong(selectedSong);
+        });
+
+        player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory)).build();
+//        playerView.setPlayer(player);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
