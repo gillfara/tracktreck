@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
@@ -50,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView currentSongTitle, currentSongArtist;
     private ImageView playPauseButton, nextButton, prevButton;
 
+    private static final String TAG = "MainActivity";
+
     private void playSelectedSong(CustomMusicItem song) {
         MediaItem mediaItem = MediaItem.fromUri(song.getSongUrl());
         player.setMediaItem(mediaItem);
@@ -58,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Update current song UI
         currentSongTitle.setText(song.getTitle());
-        currentSongArtist.setText(song.getArtist());
         playPauseButton.setImageResource(R.drawable.ic_pause);
     }
 
@@ -103,17 +105,23 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         JSONObject item = response.getJSONObject(i);
                         String path = item.getString("path");
-                        String title = item.getString("title");
-                        String artist = item.getString("artist");
-                        String albumCoverUrl = item.getString("albumCoverUrl");
-                        songList.add(new CustomMusicItem(albumCoverUrl, title, artist, "http://192.168.43.151/hls/" + path));
+                        String title = item.getString("name");
+                        songList.add(new CustomMusicItem(title, "http://192.168.43.151/hls/" + path));
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
 
                 // Update UI on the main thread
-                runOnUiThread(() -> songAdapter.notifyDataSetChanged());
+                runOnUiThread(() -> {
+                    songAdapter.notifyDataSetChanged();
+                    // Add all songs to the player playlist
+                    for (CustomMusicItem song : songList) {
+                        MediaItem mediaItem = MediaItem.fromUri(song.getSongUrl());
+                        player.addMediaItem(mediaItem);
+                    }
+                    player.prepare();
+                });
             }
 
             @Override
@@ -133,7 +141,9 @@ public class MainActivity extends AppCompatActivity {
             playSelectedSong(selectedSong);
         });
 
-        player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory)).build();
+        player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory))
+                .build();
         playerView.setPlayer(player);
 
         // Handle play/pause button
@@ -149,19 +159,23 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle next button
         nextButton.setOnClickListener(v -> {
-            int nextIndex = player.getNextWindowIndex();
-            if (nextIndex != C.INDEX_UNSET) {
-                player.seekTo(nextIndex, C.TIME_UNSET);
+            Log.d(TAG, "Next button clicked");
+            player.seekToNextMediaItem();
+            if (player.hasNextMediaItem()) {
                 player.play();
+            } else {
+                Toast.makeText(MainActivity.this, "No next song", Toast.LENGTH_SHORT).show();
             }
         });
 
         // Handle previous button
         prevButton.setOnClickListener(v -> {
-            int prevIndex = player.getPreviousWindowIndex();
-            if (prevIndex != C.INDEX_UNSET) {
-                player.seekTo(prevIndex, C.TIME_UNSET);
+            Log.d(TAG, "Previous button clicked");
+            player.seekToPreviousMediaItem();
+            if (player.hasPreviousMediaItem()) {
                 player.play();
+            } else {
+                Toast.makeText(MainActivity.this, "No previous song", Toast.LENGTH_SHORT).show();
             }
         });
 

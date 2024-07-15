@@ -36,9 +36,9 @@ public class CustomMusicAdapter extends ArrayAdapter<CustomMusicItem> {
         TextView songTitle = convertView.findViewById(R.id.song_title);
         TextView songArtist = convertView.findViewById(R.id.song_artist);
 
-        Glide.with(context).load(song.getAlbumCoverUrl()).into(albumCover);
+//        Glide.with(context).load(song.getAlbumCoverUrl()).into(albumCover);
         songTitle.setText(song.getTitle());
-        songArtist.setText(song.getArtist());
+
 
         return convertView;
     }
